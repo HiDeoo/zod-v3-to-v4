@@ -6,6 +6,7 @@ import {
   collectZodReferences,
   getZodName,
 } from "./collect-imports.ts";
+import { convertAstroDeprecatedZodImports } from "./convert-astro-zod-imports.ts";
 import {
   convertZArrayPatternsToTopLevelApi,
   convertZCoercePatternsToTopLevelApi,
@@ -80,6 +81,8 @@ export function migrateZodV3ToV4(
   convertZodErrorToTreeifyError(sourceFile, zodName);
   convertZodErrorAddIssueToDirectPushes(sourceFile, zodName);
   renameZSchemaEnumToLowercase(sourceFile, zodName);
+
+  convertAstroDeprecatedZodImports(importDeclarations);
 
   return sourceFile.getFullText();
 }

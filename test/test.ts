@@ -139,10 +139,46 @@ describe("Zod v3 to v4", () => {
   });
 });
 
-async function runScenario(fixturePath: string) {
+describe.only("Astro", () => {
+  function runAstroScenario(fixturePath: string) {
+    return runScenario(fixturePath, {
+      migrateImportDeclarations: false,
+    });
+  }
+
+  // https://deploy-preview-12322--astro-docs-2.netlify.app/en/guides/upgrade-to/v6/#deprecated-astroschema-and-z-from-astrocontent
+  describe("runs for Astro", () => {
+    it("runs for `astro:schema`", async () => {
+      await runAstroScenario("astro.astro-schema");
+    });
+
+    it("runs for `astro:content`", async () => {
+      await runAstroScenario("astro.astro-content");
+    });
+
+    it("runs for `astro/zod`", async () => {
+      await runAstroScenario("astro.astro-zod");
+    });
+  });
+
+  describe("converts imports", () => {
+    it("replaces import", async () => {
+      await runAstroScenario("astro.replace-import");
+    });
+
+    it("preserves type import", async () => {
+      await runAstroScenario("astro.preserve-type-import");
+    });
+  });
+});
+
+async function runScenario(
+  fixturePath: string,
+  options: Parameters<typeof migrateZodV3ToV4>[1] = {},
+) {
   const { input, output } = await readFixtures(fixturePath);
 
-  const { actual, expected } = await transform(input, output);
+  const { actual, expected } = await transform(input, output, options);
 
   expect(actual).toEqual(expected);
 }
@@ -166,8 +202,10 @@ async function readFixtures(name: string) {
 async function transform(
   beforeText: string,
   afterText: string,
-  path = "index.tsx",
+  options: Parameters<typeof migrateZodV3ToV4>[1] & { path?: string },
 ) {
+  const { path = "index.tsx", migrateImportDeclarations = true } = options;
+
   const project = new Project({
     useInMemoryFileSystem: true,
     skipFileDependencyResolution: true,
@@ -178,8 +216,7 @@ async function transform(
 
   const actualSourceFile = project.createSourceFile(path, beforeText);
   let actual =
-    migrateZodV3ToV4(actualSourceFile, { migrateImportDeclarations: true }) ??
-    "";
+    migrateZodV3ToV4(actualSourceFile, { migrateImportDeclarations }) ?? "";
 
   let expected = project
     .createSourceFile(`expected${extname(path)}`, afterText)
